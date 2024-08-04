@@ -11,7 +11,7 @@ module pkt_Priorer #(
     input   logic                                       in_en,
     output  logic                                       in_valid,
     input   pkHeadInfo                                  in_pkt_info,
-    output  logic [DWIDTH-1:0]                          in_data,
+    input   logic [DWIDTH-1:0]                          in_data,
     
     input   logic                                       out_deque_en,
     output  logic                                       out_valid,
@@ -24,40 +24,48 @@ module pkt_Priorer #(
     // reg [31:0]  num_R_q;
     // reg [31:0]  num_Out_q;
     // reg         push2Lq;
-    pkHeadInfo         o_fifo_data;
-//    logic           out_valid;
-//    logic           out_deque_en;
+    pkHeadInfo          o_fifo_info;
+    pkHeadInfo          o_fail_info;
+    logic [DWIDTH-1:0]  o_fail_data;
+    logic [DWIDTH-1:0]  o_fifo_data;
+    logic               out_fail;
 
 
-    FIFOdual #( .DWIDTH(16'd96) ) EntryCollector (
+    FIFOdual #( .DWIDTH($bits(in_pkt_info)+$bits(in_data)) ) EntryCollector (
         // General I/O
         .clk(clk),
         .rst(rst),
 
-        .inA_enque_en(in_en),//get pkt info from module input
-        .inA_data({in_pkt_info.sIP,in_pkt_info.dIP,in_pkt_info.sPort,in_pkt_info.dPort}),
+        .inA_enque_en(in_en),
+        .inA_data({in_pkt_info,in_data}),
 
-        .inB_enque_en(0),
-        .inB_data(0),
+        .inB_enque_en(out_fail),
+        .inB_data({o_fail_info,o_fail_data}),
 
         .in_valid(in_valid),
 
-        .out_deque_en(out_deque_en),
+        .out_deque_en(1'b1),
         .out_valid(out_valid),
-        .out_data({o_fifo_data.sIP,o_fifo_data.dIP,o_fifo_data.sPort,o_fifo_data.dPort})
+        .out_data({o_fifo_info,o_fifo_data})
     );
 
 
-    QuadSet CompQueq [SLOT_SIZE-1:0];
-    QuadSet CompSlot [SLOT_SIZE-1:0];
+
+    pkHeadInfo CompQueq [SLOT_SIZE-1:0];
+    pkHeadInfo CompSlot [SLOT_SIZE-1:0];
+    logic [DWIDTH-1:0]  Data_slot [SLOT_SIZE-1:0];
     logic   CompRslt [SLOT_SIZE-1:0];
     
     integer i,j;
 
     always_comb begin
-        for(int i=0;i<SLOT_SIZE;i++) begin
-            CompRslt[i] = 1'b1;
-        end
+        out_prior   = CompQueq[SLOT_SIZE-1].NoF;
+        out_data    = Data_slot[SLOT_SIZE-1];
+        out_valid   = (CompQueq[SLOT_SIZE-1].NoF!=0)&&(CompQueq[SLOT_SIZE-1].valid==1);
+        
+        out_fail    = (CompQueq[SLOT_SIZE-1].NoF==0)&&(CompQueq[SLOT_SIZE-1].valid==1);
+        o_fail_info = CompQueq[SLOT_SIZE-1];
+        o_fail_data = Data_slot[SLOT_SIZE-1];
     end
 
     always @(posedge clk or posedge rst) begin
@@ -65,17 +73,57 @@ module pkt_Priorer #(
             for(int i=0;i<SLOT_SIZE;i++) begin
                 CompQueq[i] <= 0;
                 CompSlot[i] <= 0;
+                Data_slot[i] <= 0;
             end
         end else begin
 
-            CompQueq[0] <= (out_valid)?o_fifo_data:0 ;
+            CompQueq[0] <= (out_valid)?o_fifo_info:0 ;
+            Data_slot[0] <= (out_valid)?o_fifo_data:0 ;
 
             for(int j=1;j<SLOT_SIZE;j++) begin
-                CompQueq[j] <= CompQueq[j-1];
-                CompSlot[i] <= CompQueq[i];
+
+                if( (CompSlot[j-1].valid==0) && (CompQueq[j-1].valid==1)  ) begin
+                    if((CompQueq[j-1].NoF==0)) begin
+                        CompSlot[j-1] <= CompQueq[j-1];
+                        CompSlot[j-1].valid <= 1'b1;
+                        CompQueq[j] <= CompQueq[j-1];
+                        CompQueq[j].NoF <= j;
+                        Data_slot[j] <= Data_slot[j-1];
+                    end else begin
+                        CompSlot[j-1] <= CompQueq[j-1];
+                        CompSlot[j-1].valid <= 1'b1;
+                        CompQueq[j] <= CompQueq[j-1];
+                        CompQueq[j].NoF <= j;
+                        Data_slot[j] <= Data_slot[j-1];
+                    end
+
+                    
+                end else if ( (CompSlot[j-1].valid==1) && (CompQueq[j-1].valid==1) && (CompQueq[j-1].NoF==0)) begin
+                    if( (CompSlot[j-1].sIP==CompQueq[j-1].sIP)  &&
+                        (CompSlot[j-1].dIP==CompQueq[j-1].dIP)  &&
+                        (CompSlot[j-1].sPort==CompQueq[j-1].sPort) &&
+                        (CompSlot[j-1].dPort==CompQueq[j-1].dPort) ) begin
+
+                            // CompSlot[j-1] <= CompQueq[j-1];
+                            // CompSlot[j-1].valid <= 1'b1;
+                            CompQueq[j] <= CompQueq[j-1];
+                            CompQueq[j].NoF <= j;
+                            Data_slot[j] <= Data_slot[j-1];
+                        
+                        end else begin
+                        
+                            // CompSlot[j-1] <= CompQueq[j-1];
+                            // CompSlot[j-1].valid <= 1'b1;
+                            CompQueq[j] <= CompQueq[j-1];
+                            CompQueq[j].NoF <= j;
+                            Data_slot[j] <= Data_slot[j-1];
+                        
+                        end
+                    
+                end
             end
 
-            out_prior <= CompQueq[SLOT_SIZE-1].NoF;
+
         end
     end
 
