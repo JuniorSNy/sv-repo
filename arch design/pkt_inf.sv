@@ -9,7 +9,7 @@ typedef struct packed {
     logic [15:0]    dPort; 
     logic [31:0]    seqNum;
     logic [31:0]    size;
-    logic [5:0]     NoF;
+    // logic [5:0]     NoF;
     logic           valid;
 } pkHeadInfo;
 
