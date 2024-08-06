@@ -6,19 +6,16 @@ module moduleName #(
     input   logic                                       clk,
     input   logic                                       rst,
 
-    input   logic                                       in_en,
     output  logic                                       in_valid,
+    input   logic                                       in_enque_en,
+    input   logic                                       in_Ugr_en,
     input   pkHeadInfo                                  in_pkt_info,
-    output  logic [DWIDTH-1:0]                          in_data,
+    input   logic [DWIDTH-1:0]                          in_data,
     
-    input   logic                                       out_deque_en,
     output  logic                                       out_valid,
+    input   logic                                       out_deque_en,
     output  logic [DWIDTH-1:0]                          out_data
 );
-
-
-    pkt_Priorer #() prior_calculator ();
-
 
 
     reg [31:0]  num_L_q;
@@ -26,9 +23,30 @@ module moduleName #(
     reg [31:0]  num_Out_q;
     reg         push2Lq;
 
-    bbq  #() L_buff_PQ ();
-    bbq  #() R_buff_PQ ();
-    FIFO  #() out_buffer ();
+
+    pkt_Priorer #(
+
+    ) prior_calculator ();
+
+    BBQ_router #(
+
+    ) router ();
+
+    bbq  #(
+
+    ) L_buff_PQ ();
+
+    bbq  #(
+
+    ) R_buff_PQ ();
+
+    FIFOdual  #(
+
+    ) out_buffer ();
+
+    FIFOdual  #(
+
+    ) out_Ugr_buffer ();
 
 
     always_comb begin

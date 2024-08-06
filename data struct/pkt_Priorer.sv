@@ -85,7 +85,7 @@ module pkt_Priorer #(
             CompQueq[0] <= (F_out_valid)?o_fifo_info:0 ;
             CompQueq[0].valid <= F_out_valid;
             Data_slot[0] <= (F_out_valid)?o_fifo_data:0 ;
-            NoF_slot[0]  <= NoF_out;
+            NoF_slot[0]  <= (F_out_valid)?NoF_out:0;
 
             // CompQueq[j] <= CompQueq[j-1];
             // CompQueq[j].NoF <= j;
@@ -96,27 +96,28 @@ module pkt_Priorer #(
                 CompQueq[i] <= CompQueq[i-1];
                 // CompSlot[i] <= 0;
                 Data_slot[i] <= Data_slot[i-1];
-                NoF_slot[i]  <= NoF_slot[i-1] ;
             end
 
 
-            for(int j=1;j<SLOT_SIZE;j++) begin
+            for(int i=1;i<SLOT_SIZE;i++) begin
+                
+                NoF_slot[i]  <= NoF_slot[i-1] ;
 
-                // if( (CompSlot[j-1].valid==0) && (CompQueq[j-1].valid==1)  ) begin
-                //     if((CompQueq[j-1].NoF==0)) begin
-                //         CompSlot[j-1] <= CompQueq[j-1];
-                //         CompSlot[j-1].valid <= 1'b1;
-                //         CompQueq[j] <= CompQueq[j-1];
-                //         CompQueq[j].NoF <= j;
-                //         Data_slot[j] <= Data_slot[j-1];
-                //     end else begin
-                //         CompSlot[j-1] <= CompQueq[j-1];
-                //         CompSlot[j-1].valid <= 1'b1;
-                //         CompQueq[j] <= CompQueq[j-1];
-                //         CompQueq[j].NoF <= j;
-                //         Data_slot[j] <= Data_slot[j-1];
-                //     end
-
+                if( (CompSlot[j-1].valid==0) && (CompQueq[j-1].valid==1)  ) begin
+                    if((CompQueq[j-1].NoF==0)) begin
+                        // CompSlot[j-1] <= CompQueq[j-1];
+                        // CompSlot[j-1].valid <= 1'b1;
+                        // CompQueq[j] <= CompQueq[j-1];
+                        // CompQueq[j].NoF <= j;
+                        // Data_slot[j] <= Data_slot[j-1];
+                    end else begin
+                        // CompSlot[j-1] <= CompQueq[j-1];
+                        // CompSlot[j-1].valid <= 1'b1;
+                        // CompQueq[j] <= CompQueq[j-1];
+                        // CompQueq[j].NoF <= j;
+                        // Data_slot[j] <= Data_slot[j-1];
+                    end
+                end
                     
                 // end else if ( (CompSlot[j-1].valid==1) && (CompQueq[j-1].valid==1) && (CompQueq[j-1].NoF==0)) begin
                 //     if( (CompSlot[j-1].sIP==CompQueq[j-1].sIP)  &&
