@@ -14,6 +14,7 @@ module BBQ_router #(
     input   logic [PRIOR_WIDTH-1:0]                     in_prior,
     
     input   logic                                       out_ctrl,
+    input   heap_op_t                                   out_op,
     
     output  logic                                       out_0_valid,
     output  heap_op_t                                   out_0_op_type,
@@ -23,7 +24,7 @@ module BBQ_router #(
     output  logic                                       out_1_valid,
     output  heap_op_t                                   out_1_op_type,
     output  logic [DWIDTH-1:0]                          out_1_he_data,
-    output  logic [PRIOR_WIDTH-1:0]                     out_1_he_priority,
+    output  logic [PRIOR_WIDTH-1:0]                     out_1_he_priority
 );
     
 
@@ -31,7 +32,7 @@ module BBQ_router #(
         if (out_ctrl) begin
 
             out_0_valid         = 1'b1;
-            out_0_op_type       = HEAP_OP_DEQUE_MAX;
+            out_0_op_type       = out_op;
             out_0_he_data       = 0;
             out_0_he_priority   = 0;
 
@@ -48,7 +49,7 @@ module BBQ_router #(
             out_0_he_priority   = in_prior;
 
             out_1_valid         = 1'b1;
-            out_1_op_type       = HEAP_OP_DEQUE_MAX;
+            out_1_op_type       = out_op;
             out_1_he_data       = 0;
             out_1_he_priority   = 0;
             
@@ -57,5 +58,5 @@ module BBQ_router #(
 
     always @(posedge clk or posedge rst) begin
     end
-    
+
 endmodule
