@@ -62,7 +62,7 @@ module moduleName #(
         .in_pkt_info(in_pkt_info),
         .in_data(in_data),
 
-        .out_deque_en()
+        // .out_deque_en()
         .out_valid(router_in_enable),
         .out_data(router_in_data),
         .out_prior(router_in_priority)
