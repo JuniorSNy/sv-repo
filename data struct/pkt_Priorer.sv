@@ -2,8 +2,8 @@ import pkt_h::*;
 
 module pkt_Priorer #(
     parameter DWIDTH = 32,
-    parameter SLOT_SIZE = 8
-
+    parameter SLOT_SIZE = 8,
+    parameter PRIOR_WIDTH = 6
 ) (
     input   logic                                       clk,
     input   logic                                       rst,
@@ -13,146 +13,100 @@ module pkt_Priorer #(
     input   pkHeadInfo                                  in_pkt_info,
     input   logic [DWIDTH-1:0]                          in_data,
     
-    // input   logic                                       out_deque_en,
+//     input   logic                                      out_deque_en,
     output  logic                                       out_valid,
     output  logic [DWIDTH-1:0]                          out_data,
-    output  logic [5:0]                                 out_prior
+    output  logic [PRIOR_WIDTH-1:0]                     out_prior
 );
 
     
-    // reg [31:0]  num_L_q;
-    // reg [31:0]  num_R_q;
-    // reg [31:0]  num_Out_q;
-    // reg         push2Lq;
-    pkHeadInfo          o_fifo_info;
-    pkHeadInfo          o_fail_info;
-    logic [DWIDTH-1:0]  o_fail_data;
-    logic [DWIDTH-1:0]  o_fifo_data;
-    logic               out_fail;
+    logic       out_fail;
+    logic       F_out_valid;
+    Ringslot    FIFO_pkt_in_set;
+    Ringslot    FIFO_out_set;
+    Ringslot    Slot_in_set [SLOT_SIZE-1:0];
+    Ringslot    Comp_in_set [SLOT_SIZE-1:0];
 
-    pkHeadInfo CompQueq [SLOT_SIZE-1:0];
-    pkHeadInfo CompSlot [SLOT_SIZE-1:0];
-    logic [DWIDTH-1:0]  Data_slot [SLOT_SIZE-1:0];
-    logic [5:0]  NoF_slot [SLOT_SIZE-1:0];
-    logic   CompRslt [SLOT_SIZE-1:0];
-    logic   F_out_valid;
-    logic [5:0]  NoF_out;
-    logic [5:0]  o_fail_NoF;
-    
-    integer i,j;
+    logic [DWIDTH-1:0]      FIFO_out_data;
+    logic [DWIDTH-1:0]      Comp_in_data [SLOT_SIZE-1:0];
+
+    always_comb begin
+        FIFO_pkt_in_set.valid               = 1'b1;
+        FIFO_pkt_in_set.NoF                 = 0;
+        FIFO_pkt_in_set.MatchFail           = 0;
+        FIFO_pkt_in_set.Info                = in_pkt_info;
+
+        out_prior   = Comp_in_set[SLOT_SIZE-1].NoF;
+        out_data    = Comp_in_data[SLOT_SIZE-1];
+        out_valid   = (Comp_in_set[SLOT_SIZE-1].NoF!=0)&&(Comp_in_set[SLOT_SIZE-1].valid==1);
+        out_fail    = (Comp_in_set[SLOT_SIZE-1].NoF==0)&&(Comp_in_set[SLOT_SIZE-1].valid==1);
+        
+    end
 
 
-    FIFOdual #( .DWIDTH($bits(in_pkt_info)+$bits(in_data)+6) ) EntryCollector (
+    FIFOdual #( .DWIDTH( $bits(FIFO_pkt_in_set)+$bits(in_data) ) ) EntryCollector (
         // General I/O
         .clk(clk),
         .rst(rst),
 
         .inA_enque_en(in_en),
-        .inA_data({in_pkt_info,in_data,6'b0}),
+        .inA_data({FIFO_pkt_in_set,in_data}),
 
         .inB_enque_en(out_fail),
-        .inB_data({o_fail_info, o_fail_data, NoF_slot[SLOT_SIZE-1]}),
+        .inB_data({Comp_in_set[SLOT_SIZE-1],Comp_in_data[SLOT_SIZE-1]}),
 
         .in_valid(in_valid),
 
         .out_deque_en(1'b1),
         .out_valid(F_out_valid),
-        .out_data({o_fifo_info,o_fifo_data,NoF_out})
+        .out_data({FIFO_out_set,FIFO_out_data})
     );
-
-
-
-    always_comb begin
-        out_prior   = NoF_slot[SLOT_SIZE-1];
-        out_data    = Data_slot[SLOT_SIZE-1];
-        out_valid   = (NoF_slot[SLOT_SIZE-1]!=0)&&(CompQueq[SLOT_SIZE-1].valid==1);
-        
-        out_fail    = (NoF_slot[SLOT_SIZE-1]==0)&&(CompQueq[SLOT_SIZE-1].valid==1);
-        o_fail_info = CompQueq[SLOT_SIZE-1];
-        o_fail_data = Data_slot[SLOT_SIZE-1];
-    end
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             for(int i=0;i<SLOT_SIZE;i++) begin
-                CompQueq[i] <= 0;
-                CompSlot[i] <= 0;
-                Data_slot[i] <= 0;
-                NoF_slot[i]  <= 0;
+                Slot_in_set[i]  <= 0;
+                Comp_in_set[i]  <= 0;
+                Comp_in_data[i] <= 0;
             end
         end else begin
 
-            CompQueq[0] <= (F_out_valid)?o_fifo_info:0 ;
-            CompQueq[0].valid <= F_out_valid;
-            Data_slot[0] <= (F_out_valid)?o_fifo_data:0 ;
-            NoF_slot[0]  <= (F_out_valid)?NoF_out:0;
-
-            // CompQueq[j] <= CompQueq[j-1];
-            // CompQueq[j].NoF <= j;
-            // Data_slot[j] <= Data_slot[j-1];
-
-            
-            for(int i=1;i<SLOT_SIZE;i++) begin
-                CompQueq[i] <= CompQueq[i-1];
-                // CompSlot[i] <= 0;
-                Data_slot[i] <= Data_slot[i-1];
+            if (F_out_valid) begin
+                Comp_in_set[0]  <= FIFO_out_set;
+                Comp_in_data[0] <= FIFO_out_data;
             end
 
-
             for(int i=1;i<SLOT_SIZE;i++) begin
-                
-                NoF_slot[i]  <= NoF_slot[i-1] ;
 
-                if( (CompSlot[j-1].valid==0) && (CompQueq[j-1].valid==1)  ) begin
-                    if((CompQueq[j-1].NoF==0)) begin
-                        // CompSlot[j-1] <= CompQueq[j-1];
-                        // CompSlot[j-1].valid <= 1'b1;
-                        // CompQueq[j] <= CompQueq[j-1];
-                        // CompQueq[j].NoF <= j;
-                        // Data_slot[j] <= Data_slot[j-1];
+                if((Comp_in_set[i-1].valid==1)&&(Comp_in_set[i-1].NoF==0)&&(Slot_in_set[i-1].valid==0))begin
+                    //空的SLOT，以及可用的Comp_in_set
+                    Slot_in_set[i-1]<= Comp_in_set[i-1];
+                    Comp_in_set[i]  <= Comp_in_set[i-1];
+                    Comp_in_set[i].NoF  <= i;
+                    Comp_in_data[i] <= Comp_in_data[i-1];
+                end else if( (Comp_in_set[i-1].valid==1)&&(Comp_in_set[i-1].NoF==0)&&(Slot_in_set[i-1].valid==1) ) begin
+                    //被使用的SLOT，以及可用的Comp_in_set
+                    if(Comp_in_set[i-1].Info.key==Slot_in_set[i-1].Info.key) begin
+                        Comp_in_set[i]  <= Comp_in_set[i-1];
+                        Comp_in_set[i].NoF  <= i;   
+                        Comp_in_data[i] <= Comp_in_data[i-1];
+                    end else if (Slot_in_set[i-1].NoF < 16'd10 )begin
+                        Comp_in_set[i].MatchFail  <= Comp_in_set[i-1].MatchFail+1'b1;
+                        Comp_in_set[i]  <= Comp_in_set[i-1];
+                        Slot_in_set[i-1].NoF  <= Slot_in_set[i-1].NoF + 1'b1;
+                        Comp_in_data[i] <= Comp_in_data[i-1];
                     end else begin
-                        // CompSlot[j-1] <= CompQueq[j-1];
-                        // CompSlot[j-1].valid <= 1'b1;
-                        // CompQueq[j] <= CompQueq[j-1];
-                        // CompQueq[j].NoF <= j;
-                        // Data_slot[j] <= Data_slot[j-1];
+                        Slot_in_set[i-1]<= Comp_in_set[i-1];
+                        Comp_in_set[i]  <= Comp_in_set[i-1];
+                        Comp_in_set[i].NoF  <= i;
+                        Comp_in_data[i] <= Comp_in_data[i-1];
                     end
+                end else begin
+                    Comp_in_set[i]  <= Comp_in_set[i-1];
+                    Comp_in_data[i] <= Comp_in_data[i-1];
                 end
-                    
-                // end else if ( (CompSlot[j-1].valid==1) && (CompQueq[j-1].valid==1) && (CompQueq[j-1].NoF==0)) begin
-                //     if( (CompSlot[j-1].sIP==CompQueq[j-1].sIP)  &&
-                //         (CompSlot[j-1].dIP==CompQueq[j-1].dIP)  &&
-                //         (CompSlot[j-1].sPort==CompQueq[j-1].sPort) &&
-                //         (CompSlot[j-1].dPort==CompQueq[j-1].dPort) ) begin
-
-                //             // CompSlot[j-1] <= CompQueq[j-1];
-                //             // CompSlot[j-1].valid <= 1'b1;
-                //             CompQueq[j] <= CompQueq[j-1];
-                //             CompQueq[j].NoF <= j;
-                //             Data_slot[j] <= Data_slot[j-1];
-                        
-                //         end else begin
-                        
-                //             // CompSlot[j-1] <= CompQueq[j-1];
-                //             // CompSlot[j-1].valid <= 1'b1;
-                //             CompQueq[j] <= CompQueq[j-1];
-                //             CompQueq[j].NoF <= j;
-                //             Data_slot[j] <= Data_slot[j-1];
-                        
-                //         end
-                    
-                // end else begin
-                //     CompQueq[j] <= CompQueq[j-1];
-                //     CompQueq[j].NoF <= j;
-                //     Data_slot[j] <= Data_slot[j-1];
-                    
-                // end
             end
-
-
         end
     end
 
-
-    
 endmodule

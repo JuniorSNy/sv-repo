@@ -16,7 +16,7 @@ logic out_deque_en;
 logic out_valid;
 logic [63:0] out_data;
 
-
+//int D_width = $bits(in_pkt_info)+$bits(pkt_Priorer_inst.in_data)+PRIOR_WIDTH;
 pkHeadInfo         o_fifo_data;
 
 initial in_enque_en = 1;
@@ -59,7 +59,7 @@ pkt_Priorer #(
     .in_valid(in_valid),
     .in_pkt_info(o_fifo_data),
     .in_data(in_data_addr),
-    .out_deque_en(),
+//    .out_deque_en(),
     .out_valid(),
     .out_data(),
     .out_prior()
