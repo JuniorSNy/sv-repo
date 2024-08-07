@@ -1,6 +1,8 @@
-module moduleName #(
+import heap_ops::*;
+import pkt_h::*;
+
+module pkt_sche_v0_1 #(
     parameter DWIDTH = 32,
-    parameter ADDRWIDTH = 32,
     parameter QUEUE_SIZE = 16
 ) (
     
@@ -23,27 +25,27 @@ module moduleName #(
     // reg [31:0]  num_Out_q;
     // reg         push2Lq;
     logic                   en_among_FIFO;
-    logic [ADDRWIDTH-1:0]   addr_among_FIFO;
+    logic [DWIDTH-1:0]      addr_among_FIFO;
     logic                   router_ctrl;
 
     
-    logic                   router_in_enable;
-    logic [ADDRWIDTH-1:0]   router_in_data;
+    logic                   router_in_en;
+    logic [DWIDTH-1:0]      router_in_data;
     logic [5:0]             router_in_priority;
 
     logic                   router_o_0_valid;
     heap_op_t               router_o_0_op_type;
-    logic [ADDRWIDTH-1:0]   router_o_0_he_data;
+    logic [DWIDTH-1:0]      router_o_0_he_data;
     logic [5:0]             router_o_0_he_priority;
 
     logic                   router_o_1_valid;
     heap_op_t               router_o_1_op_type;
-    logic [ADDRWIDTH-1:0]   router_o_1_he_data;
+    logic [DWIDTH-1:0]      router_o_1_he_data;
     logic [5:0]             router_o_1_he_priority;
 
 
-    logic [ADDRWIDTH-1:0]   BBQ_PQ_0_addr;
-    logic [ADDRWIDTH-1:0]   BBQ_PQ_1_addr;
+    logic [DWIDTH-1:0]      BBQ_PQ_0_addr;
+    logic [DWIDTH-1:0]      BBQ_PQ_1_addr;
 
     logic                   BBQ_PQ_0_valid;
     logic                   BBQ_PQ_1_valid;
@@ -54,6 +56,8 @@ module moduleName #(
     heap_op_t               BBQ_PQ_0_optype;
     heap_op_t               BBQ_PQ_1_optype;
 
+
+
     pkt_Priorer #(  ) prior_calculator (
         .clk(clk),
         .rst(rst),
@@ -63,7 +67,7 @@ module moduleName #(
         .in_data(in_data),
 
         // .out_deque_en()
-        .out_valid(router_in_enable),
+        .out_valid(router_in_en),
         .out_data(router_in_data),
         .out_prior(router_in_priority)
     );
@@ -73,11 +77,18 @@ module moduleName #(
         BBQ_out_op = HEAP_OP_DEQUE_MAX;
     end
 
+    initial ready = 0;
+    always @(posedge clk ) begin
+        ready <= ready | (BBQ_PQ_0_rdy&&BBQ_PQ_1_rdy);
+    end
+
     BBQ_router #(  ) router (
         .clk(clk),
         .rst(rst),
+        
+        .bbq_rdy(BBQ_PQ_0_rdy&&BBQ_PQ_1_rdy),
 
-        .in_enque_en(router_in_enable),
+        .in_enque_en(router_in_en),
         .in_data(router_in_data),
         .in_prior(router_in_priority),
 
@@ -95,7 +106,9 @@ module moduleName #(
         .out_1_he_priority(router_o_1_he_priority)
     );
 
-    bbq  #() BBQ_PQ_0 (
+    bbq  #(
+//        .HEAP_ENTRY_DWIDTH(DWIDTH)
+    ) BBQ_PQ_0 (
         .clk(clk),
         .rst(rst),
         .ready(BBQ_PQ_0_rdy),
@@ -109,7 +122,9 @@ module moduleName #(
         .out_he_priority()
     );
 
-    bbq  #() BBQ_PQ_1 (
+    bbq  #(
+//        .HEAP_ENTRY_DWIDTH(DWIDTH)
+        ) BBQ_PQ_1 (
         .clk(clk),
         .rst(rst),
         .ready(BBQ_PQ_1_rdy),
@@ -124,7 +139,7 @@ module moduleName #(
     );
 
     FIFOdual  #(
-        .DWIDTH(ADDRWIDTH),
+        .DWIDTH(DWIDTH),
         .QUEUE_SIZE(QUEUE_SIZE)
     ) out_buffer (
         .clk(clk),
@@ -141,7 +156,7 @@ module moduleName #(
     );
 
     FIFOdual  #(
-        .DWIDTH(ADDRWIDTH),
+        .DWIDTH(DWIDTH),
         .QUEUE_SIZE(QUEUE_SIZE)
     ) out_Ugr_buffer (
         .clk(clk),
@@ -157,13 +172,13 @@ module moduleName #(
     );
 
 
-    always_comb begin
-    end
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
-        end else begin
-        end
-    end
+    // always_comb begin
+    // end
+    // always @(posedge clk or posedge rst) begin
+    //     if (rst) begin
+    //     end else begin
+    //     end
+    // end
 
 
     

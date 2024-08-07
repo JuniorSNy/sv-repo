@@ -8,6 +8,7 @@ module BBQ_router #(
     // General I/O
     input   logic                                       clk,
     input   logic                                       rst,
+    input   logic                                       bbq_rdy,
 
     input   logic                                       in_enque_en,
     input   logic [DWIDTH-1:0]                          in_data,
@@ -29,30 +30,42 @@ module BBQ_router #(
     
 
     always_comb begin
-        if (out_ctrl) begin
+        if(bbq_rdy)begin
+            if (out_ctrl) begin
 
-            out_0_valid         = 1'b1;
-            out_0_op_type       = out_op;
-            out_0_he_data       = 0;
-            out_0_he_priority   = 0;
+                out_0_valid         = 1'b1;
+                out_0_op_type       = out_op;
+                out_0_he_data       = 0;
+                out_0_he_priority   = 0;
 
-            out_1_valid         = in_enque_en;
-            out_1_op_type       = HEAP_OP_ENQUE;
-            out_1_he_data       = in_data;
-            out_1_he_priority   = in_prior;
+                out_1_valid         = in_enque_en;
+                out_1_op_type       = HEAP_OP_ENQUE;
+                out_1_he_data       = in_data;
+                out_1_he_priority   = in_prior;
 
+            end else begin
+
+                out_0_valid         = in_enque_en;
+                out_0_op_type       = HEAP_OP_ENQUE;
+                out_0_he_data       = in_data;
+                out_0_he_priority   = in_prior;
+
+                out_1_valid         = 1'b1;
+                out_1_op_type       = out_op;
+                out_1_he_data       = 0;
+                out_1_he_priority   = 0;
+                
+            end
         end else begin
+                out_0_valid         = 0;
+                out_0_op_type       = out_op;
+                out_0_he_data       = 0;
+                out_0_he_priority   = 0;
 
-            out_0_valid         = in_enque_en;
-            out_0_op_type       = HEAP_OP_ENQUE;
-            out_0_he_data       = in_data;
-            out_0_he_priority   = in_prior;
-
-            out_1_valid         = 1'b1;
-            out_1_op_type       = out_op;
-            out_1_he_data       = 0;
-            out_1_he_priority   = 0;
-            
+                out_1_valid         = 0;
+                out_1_op_type       = out_op;
+                out_1_he_data       = 0;
+                out_1_he_priority   = 0;
         end
     end
 

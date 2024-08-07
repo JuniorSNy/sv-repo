@@ -1,0 +1,1 @@
+sudo apt-get install git perl python3 make autoconf g++ flex bison ccache libgoogle-perftools-dev numactl perl-doc help2man libfl2 libfl-dev  zlibc zlib1g zlib1g-dev 

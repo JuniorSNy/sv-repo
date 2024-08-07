@@ -16,7 +16,7 @@ pkHeadInfo pkt_in_info;
 logic [pkt_Priorer_inst.DWIDTH-1:0] pkt_in_data,pkt_out_data;
 logic [pkt_Priorer_inst.PRIOR_WIDTH-1:0] pkt_out_prior;
 logic pkt_out_valid;
-
+logic [31:0] randomline;
 
 
 initial clk = 0;
@@ -29,9 +29,10 @@ always @(posedge clk) begin
     rst <= 0;
     pkt_in_en <= 1;
     i=i+1;
+    randomline =  $random();
 
-    pkt_in_info.key <= i%7 + 1;
-    pkt_in_data <= $random();
+    pkt_in_info.key <= randomline%7 + 16;
+    pkt_in_data <= randomline%7 + 1;
     // o_fifo_data <= {$random(),$random(),$random(),$random(),$random(),$random(),$random(),$random()};
     // test_timer <= test_timer + 1;
     // in_data_addr <= $random();
