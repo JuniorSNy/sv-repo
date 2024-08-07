@@ -13,7 +13,6 @@ module pkt_Priorer #(
     input   pkHeadInfo                                  in_pkt_info,
     input   logic [DWIDTH-1:0]                          in_data,
     
-//     input   logic                                      out_deque_en,
     output  logic                                       out_valid,
     output  logic [DWIDTH-1:0]                          out_data,
     output  logic [PRIOR_WIDTH-1:0]                     out_prior
@@ -45,7 +44,6 @@ module pkt_Priorer #(
 
 
     FIFOdual #( .DWIDTH( $bits(FIFO_pkt_in_set)+$bits(in_data) ) ) EntryCollector (
-        // General I/O
         .clk(clk),
         .rst(rst),
 
@@ -70,14 +68,11 @@ module pkt_Priorer #(
                 Comp_in_data[i] <= 0;
             end
         end else begin
-
             if (F_out_valid) begin
                 Comp_in_set[0]  <= FIFO_out_set;
                 Comp_in_data[0] <= FIFO_out_data;
             end
-
             for(int i=1;i<SLOT_SIZE;i++) begin
-
                 if((Comp_in_set[i-1].valid==1)&&(Comp_in_set[i-1].NoF==0)&&(Slot_in_set[i-1].valid==0))begin
                     //空的SLOT，以及可用的Comp_in_set
                     Slot_in_set[i-1]<= Comp_in_set[i-1];
@@ -86,17 +81,22 @@ module pkt_Priorer #(
                     Comp_in_data[i] <= Comp_in_data[i-1];
                 end else if( (Comp_in_set[i-1].valid==1)&&(Comp_in_set[i-1].NoF==0)&&(Slot_in_set[i-1].valid==1) ) begin
                     //被使用的SLOT，以及可用的Comp_in_set
+                    //目前的实现是太久没有匹配到对应的key后，直接去除Slot的信息并放入新的流的信息，先做一个简单的实现用来调试
                     if(Comp_in_set[i-1].Info.key==Slot_in_set[i-1].Info.key) begin
+                        Slot_in_set[i-1].NoF  <= 0;
+                        
                         Comp_in_set[i]  <= Comp_in_set[i-1];
                         Comp_in_set[i].NoF  <= i;   
                         Comp_in_data[i] <= Comp_in_data[i-1];
                     end else if (Slot_in_set[i-1].NoF < 16'd10 )begin
+                        Slot_in_set[i-1].NoF  <= Slot_in_set[i-1].NoF + 1'b1;
+
                         Comp_in_set[i].MatchFail  <= Comp_in_set[i-1].MatchFail+1'b1;
                         Comp_in_set[i]  <= Comp_in_set[i-1];
-                        Slot_in_set[i-1].NoF  <= Slot_in_set[i-1].NoF + 1'b1;
                         Comp_in_data[i] <= Comp_in_data[i-1];
                     end else begin
                         Slot_in_set[i-1]<= Comp_in_set[i-1];
+
                         Comp_in_set[i]  <= Comp_in_set[i-1];
                         Comp_in_set[i].NoF  <= i;
                         Comp_in_data[i] <= Comp_in_data[i-1];
@@ -108,5 +108,4 @@ module pkt_Priorer #(
             end
         end
     end
-
 endmodule
