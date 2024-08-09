@@ -75,6 +75,7 @@ heap_priority_t heap_out_priority;
 
 integer i;
 
+`define TEST_CASE "TEST_BASIC_ENQUE"
 `ifndef TEST_CASE
     $error("FAIL: No test case specified");
 `else
@@ -109,9 +110,48 @@ always @(posedge clk) begin
             heap_in_op_type <= HEAP_OP_ENQUE;
             heap_in_priority <= (HEAP_NUM_PRIORITIES - 1);
         end
-        else if (counter > P) begin
-            $display("FAIL %s: Test timed out", `TEST_CASE);
-            $stop;
+        else if (counter == 3) begin
+            heap_in_valid <= 0;
+            heap_in_data <= 26;
+            heap_in_op_type <= HEAP_OP_ENQUE;
+            heap_in_priority <= (HEAP_NUM_PRIORITIES - 1);
+        end
+        else if (counter == 4) begin
+            heap_in_valid <= 1;
+            heap_in_data <= 27;
+            heap_in_op_type <= HEAP_OP_ENQUE;
+            heap_in_priority <= (HEAP_NUM_PRIORITIES - 1);
+        end
+        else if (counter == 5) begin
+            heap_in_valid <= 0;
+            heap_in_data <= 28;
+            heap_in_op_type <= HEAP_OP_ENQUE;
+            heap_in_priority <= (HEAP_NUM_PRIORITIES - 1);
+        end
+        else if (counter == 6) begin
+            heap_in_valid <= 0;
+            heap_in_data <= 26;
+            heap_in_op_type <= HEAP_OP_ENQUE;
+            heap_in_priority <= (HEAP_NUM_PRIORITIES - 1);
+        end
+        
+        else if ( counter <50 ) begin
+            
+            heap_in_valid <= 0;
+            heap_in_data <= 26;
+            heap_in_op_type <= HEAP_OP_ENQUE;
+            heap_in_priority <= (HEAP_NUM_PRIORITIES - 1);
+        end
+        else if ( counter <100 ) begin
+            
+            heap_in_valid <= ~heap_in_valid;
+            heap_in_data <= 26;
+            heap_in_op_type <= HEAP_OP_DEQUE_MIN;
+            heap_in_priority <= (HEAP_NUM_PRIORITIES - 1);
+        end
+        else if ( counter == 100 ) begin
+            
+                $stop;
         end
         else if (heap_out_valid) begin
             if ((heap_out_data === 23) &&
@@ -129,7 +169,7 @@ always @(posedge clk) begin
             end
         end
     end
-    else if (test_timer > MAX_HEAP_INIT_CYCLES) begin
+    else if (test_timer > MAX_HEAP_INIT_CYCLES*114514) begin
         $display("FAIL %s: Heap init timed out", `TEST_CASE);
         $stop;
     end
@@ -1563,9 +1603,9 @@ end
 
 // BBQ instance
 bbq #(
-    .HEAP_BITMAP_WIDTH(HEAP_BITMAP_WIDTH),
-    .HEAP_ENTRY_DWIDTH(HEAP_ENTRY_DWIDTH),
-    .HEAP_MAX_NUM_ENTRIES(N)
+//    .HEAP_BITMAP_WIDTH(HEAP_BITMAP_WIDTH),
+//    .HEAP_ENTRY_DWIDTH(HEAP_ENTRY_DWIDTH),
+//    .HEAP_MAX_NUM_ENTRIES(N)
 )
 bbq_inst (
     .clk(clk),

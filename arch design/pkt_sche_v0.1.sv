@@ -6,18 +6,18 @@ module pkt_sche_v0_1 #(
     parameter QUEUE_SIZE = 16
 ) (
     
-    input   logic                                       clk,
-    input   logic                                       rst,
+    input   wire                                        clk,
+    input   wire                                        rst,
     output  logic                                       ready,
 
     output  logic                                       in_valid,
-    input   logic                                       in_enque_en,
-    input   logic                                       in_ugr_en,
+    input   wire                                        in_enque_en,
+    input   wire                                        in_ugr_en,
     input   pkHeadInfo                                  in_pkt_info,
-    input   logic [DWIDTH-1:0]                          in_data,
+    input   wire [DWIDTH-1:0]                           in_data,
     
     output  logic                                       out_valid,
-    input   logic                                       out_deque_en,
+    input   wire                                        out_deque_en,
     output  logic [DWIDTH-1:0]                          out_data
 );
     // reg [31:0]  num_L_q;
@@ -26,6 +26,7 @@ module pkt_sche_v0_1 #(
     // reg         push2Lq;
     logic                   en_among_FIFO;
     logic [DWIDTH-1:0]      addr_among_FIFO;
+    logic [10:0]            router_counter;
     logic                   router_ctrl;
 
     
@@ -45,23 +46,23 @@ module pkt_sche_v0_1 #(
 
 
     logic [DWIDTH-1:0]      BBQ_PQ_0_addr;
-    logic [DWIDTH-1:0]      BBQ_PQ_1_addr;
-
     logic                   BBQ_PQ_0_valid;
-    logic                   BBQ_PQ_1_valid;
     logic                   BBQ_PQ_0_rdy;
-    logic                   BBQ_PQ_1_rdy;
-
-    heap_op_t               BBQ_out_op;
     heap_op_t               BBQ_PQ_0_optype;
+    
+    logic [DWIDTH-1:0]      BBQ_PQ_1_addr;
+    logic                   BBQ_PQ_1_valid;
+    logic                   BBQ_PQ_1_rdy;
     heap_op_t               BBQ_PQ_1_optype;
+    
+    heap_op_t               BBQ_out_op;
 
 
 
     pkt_Priorer #(  ) prior_calculator (
         .clk(clk),
         .rst(rst),
-        .in_en(in_enque_en&&(~in_ugr_en)),
+        .in_en( in_enque_en&(~in_ugr_en) ),
         .in_valid(in_valid),
         .in_pkt_info(in_pkt_info),
         .in_data(in_data),
@@ -73,13 +74,21 @@ module pkt_sche_v0_1 #(
     );
     
     always_comb begin
-        router_ctrl = 1;
-        BBQ_out_op = HEAP_OP_DEQUE_MAX;
     end
+    
+    initial router_ctrl = 1;
+    initial BBQ_out_op = HEAP_OP_DEQUE_MAX;
+    initial router_counter = 0;
 
     initial ready = 0;
     always @(posedge clk ) begin
         ready <= ready | (BBQ_PQ_0_rdy&&BBQ_PQ_1_rdy);
+        if(router_counter==10'd10)begin
+            router_counter <= 0;
+            router_ctrl = ~router_ctrl;
+        end else begin
+            router_counter <= router_counter+1;
+        end
     end
 
     BBQ_router #(  ) router (

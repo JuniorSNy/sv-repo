@@ -71,7 +71,11 @@ module pkt_Priorer #(
             if (F_out_valid) begin
                 Comp_in_set[0]  <= FIFO_out_set;
                 Comp_in_data[0] <= FIFO_out_data;
+            end else begin
+                Comp_in_set[0]  <= 0;
+                Comp_in_data[0] <= 0;
             end
+            
             for(int i=1;i<SLOT_SIZE;i++) begin
                 if((Comp_in_set[i-1].valid==1)&&(Comp_in_set[i-1].NoF==0)&&(Slot_in_set[i-1].valid==0))begin
                     //空的SLOT，以及可用的Comp_in_set
