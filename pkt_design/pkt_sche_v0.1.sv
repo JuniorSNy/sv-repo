@@ -3,7 +3,8 @@ import pkt_h::*;
 
 module pkt_sche_v0_1 #(
     parameter DWIDTH = 32,
-    parameter QUEUE_SIZE = 16
+    parameter QUEUE_SIZE = 16,
+    parameter PRIOR_WIDTH = 6
 ) (
     
     input   wire                                        clk,
@@ -59,15 +60,16 @@ module pkt_sche_v0_1 #(
 
 
 
-    pkt_Priorer #(  ) prior_calculator (
+    pkt_Priorer #( 
+         ) prior_calculator (
         .clk(clk),
         .rst(rst),
+
         .in_en( in_enque_en&(~in_ugr_en) ),
         .in_valid(in_valid),
         .in_pkt_info(in_pkt_info),
         .in_data(in_data),
 
-        // .out_deque_en()
         .out_valid(router_in_en),
         .out_data(router_in_data),
         .out_prior(router_in_priority)
@@ -79,7 +81,6 @@ module pkt_sche_v0_1 #(
     initial router_ctrl = 1;
     initial BBQ_out_op = HEAP_OP_DEQUE_MAX;
     initial router_counter = 0;
-
     initial ready = 0;
     always @(posedge clk ) begin
         ready <= ready | (BBQ_PQ_0_rdy&&BBQ_PQ_1_rdy);
@@ -116,7 +117,6 @@ module pkt_sche_v0_1 #(
     );
 
     bbq  #(
-//        .HEAP_ENTRY_DWIDTH(DWIDTH)
     ) BBQ_PQ_0 (
         .clk(clk),
         .rst(rst),
@@ -132,7 +132,6 @@ module pkt_sche_v0_1 #(
     );
 
     bbq  #(
-//        .HEAP_ENTRY_DWIDTH(DWIDTH)
         ) BBQ_PQ_1 (
         .clk(clk),
         .rst(rst),

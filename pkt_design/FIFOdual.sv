@@ -1,4 +1,3 @@
-
 // `define DEBUG
 
 module FIFOdual #(
@@ -8,24 +7,20 @@ module FIFOdual #(
     // General I/O
     input   logic                                       clk,
     input   logic                                       rst,
-
+    // Inqueue data and enable wire 
+    output  logic                                       in_valid,
     input   logic                                       inA_enque_en,
     input   logic [DWIDTH-1:0]                          inA_data,
-
     input   logic                                       inB_enque_en,
     input   logic [DWIDTH-1:0]                          inB_data,
-    
-    output  logic                                       in_valid,
-    
+    // Head data and dequeue enable wire, out_deque_en==1 to switch to next data
     input   logic                                       out_deque_en,
     output  logic                                       out_valid,
     output  logic [DWIDTH-1:0]                          out_data
     
 );
-    // alterState BBQchoice;
     logic [63:0] counter;
     logic [DWIDTH-1:0] OutBuff[QUEUE_SIZE-1:0];
-//    logic [$clog2(QUEUE_SIZE)-1:0] diffans;
     logic [$clog2(QUEUE_SIZE)-1:0] OutBuffHead;
     logic [$clog2(QUEUE_SIZE)-1:0] OutBuffTail;
     logic [$clog2(QUEUE_SIZE)-1:0] nextTail_p1 ;
@@ -40,7 +35,6 @@ module FIFOdual #(
         out_valid = !((OutBuffHead == OutBuffTail) );
         in_valid  = ( (( nextTail_p1 == OutBuffHead )|( nextTail_p2 == OutBuffHead )) ?1'b0:1'b1);
         out_data = OutBuff[OutBuffHead];
-//        diffans = ( (OutBuffHead - OutBuffTail)!=0 );
     end
     always @(posedge clk or posedge rst) begin
         if (rst) begin
@@ -52,7 +46,6 @@ module FIFOdual #(
             end
         end else begin
             counter <= counter+1;
-            
             if ( (inA_enque_en||inB_enque_en) && in_valid ) begin
                 if(inA_enque_en&&inB_enque_en) begin
                     OutBuff[OutBuffTail] <= inA_data;

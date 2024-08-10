@@ -2,20 +2,20 @@ import heap_ops::*;
 
 module BBQ_router #(
     parameter DWIDTH = 32,
-    // parameter QUEUE_SIZE = 16,
     parameter PRIOR_WIDTH = 6
 ) (
     // General I/O
     input   logic                                       clk,
     input   logic                                       rst,
-    input   logic                                       bbq_rdy,
 
+    // Routing the bbq_op to one of bbq_insts according to out_ctrl, and dequeue another bbq_inst
+    input   logic                                       bbq_rdy,
+    input   logic                                       out_ctrl,
+    input   heap_op_t                                   out_op,
     input   logic                                       in_enque_en,
     input   logic [DWIDTH-1:0]                          in_data,
     input   logic [PRIOR_WIDTH-1:0]                     in_prior,
     
-    input   logic                                       out_ctrl,
-    input   heap_op_t                                   out_op,
     
     output  logic                                       out_0_valid,
     output  heap_op_t                                   out_0_op_type,
