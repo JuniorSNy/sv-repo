@@ -38,6 +38,7 @@ always @( posedge clk ) begin
 //        in_enque_en <= pkt_ready;
 //        in_pkt_info <= counter%4 + 32'h114514;
 //        in_ugr_en <= (counter%10==9)?1:0;
+        $write("in_pkt_info = %x; in_data = %x\n",in_pkt_info,in_data);
         if(counter>64)begin
             $stop;
         end

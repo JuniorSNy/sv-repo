@@ -22,6 +22,11 @@ module FIFOdual #(
     output  logic [DWIDTH-1:0]                          out_data
     
 );
+
+//    reg [31:0] dataArray [2048-1:0];
+//    initial begin
+//        $readmemh("rddata.hex",dataArray );
+//    end
     // alterState BBQchoice;
     logic [63:0] counter;
     logic [DWIDTH-1:0] OutBuff[QUEUE_SIZE-1:0];

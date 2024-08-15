@@ -15,6 +15,14 @@ logic out_deque_en;
 logic out_valid;
 logic [63:0] out_data;
 
+integer file_handle; 
+integer data = 123;
+initial begin
+    file_handle = $fopen ("data_out.txt", "w");  
+    $fwrite (file_handle, "%d", data); 
+    $fclose (file_handle);
+end
+
 initial in_enque_en = 1;
 initial in_data = 114514;
 initial out_deque_en = 0;

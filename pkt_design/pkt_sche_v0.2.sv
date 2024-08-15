@@ -1,27 +1,31 @@
-import heap_ops::*;
-import pkt_h::*;
 
-module pkt_sche_v0_1 #(
+
+module pkt_sche_v0_2 #(
     parameter DWIDTH = 32,
+    parameter SLOT_SIZE = 8,
     parameter QUEUE_SIZE = 16,
     parameter PRIOR_WIDTH = 6
 ) (
-    
-    input   wire                                        clk,
-    input   wire                                        rst,
-    output  logic                                       ready,
-
+    input   logic                                       clk,
+    input   logic                                       rst,
+    // Data & PktInfo for priority caculation
+    input   logic                                       in_en,
     output  logic                                       in_valid,
-    input   wire                                        in_enque_en,
-    input   wire                                        in_ugr_en,
     input   pkHeadInfo                                  in_pkt_info,
-    input   wire [DWIDTH-1:0]                           in_data,
-    
+    input   logic [DWIDTH-1:0]                          in_data,
+    // Outdata & priority, data and priority enabled when valid==1'b1 
     output  logic                                       out_valid,
-    input   wire                                        out_deque_en,
-    output  logic [DWIDTH-1:0]                          out_data
+    output  logic [DWIDTH-1:0]                          out_data,
+    output  logic [PRIOR_WIDTH-1:0]                     out_prior
 );
 
+
+
+`define TEST_CASE "BASIC_SCHE_V0_1"
+`ifndef TEST_CASE
+    $error("FAIL: No test case specified");
+`else
+if (`TEST_CASE == "BASIC_SCHE_V0_1") begin
     logic                   en_among_FIFO;
     logic [DWIDTH-1:0]      addr_among_FIFO;
     logic [10:0]            router_counter;
@@ -79,7 +83,6 @@ module pkt_sche_v0_1 #(
     initial BBQ_out_op = HEAP_OP_DEQUE_MAX;
     initial router_counter = 0;
     initial ready = 0;
-
     always @(posedge clk ) begin
         ready <= ready | (BBQ_PQ_0_rdy&&BBQ_PQ_1_rdy);
         if(router_counter==10'd10)begin
@@ -89,8 +92,6 @@ module pkt_sche_v0_1 #(
             router_counter <= router_counter+1;
         end
     end
-
-
 
     BBQ_router #(  ) router (
         .clk(clk),
@@ -146,23 +147,6 @@ module pkt_sche_v0_1 #(
         .out_he_priority()
     );
 
-    int bbq_nr0,bbq_nr1;
-    initial bbq_nr0 = 0;
-    initial bbq_nr1 = 0;
-    
-    always @(posedge clk ) begin
-        if(ready)begin
-            if (router_o_0_valid && router_o_0_op_type==HEAP_OP_ENQUE) begin
-                bbq_nr0 = bbq_nr0 + 1;
-            end
-            if (BBQ_PQ_0_valid && BBQ_out_op==BBQ_PQ_0_optype) begin
-                bbq_nr0 = bbq_nr0 - 1;
-            end
-            
-        end
-    end
-
-
     FIFOdual  #(
         .DWIDTH(DWIDTH),
         .QUEUE_SIZE(QUEUE_SIZE)
@@ -195,16 +179,8 @@ module pkt_sche_v0_1 #(
         .out_valid(out_valid),
         .out_data(out_data)
     );
+end
+ 
 
 
-    // always_comb begin
-    // end
-    // always @(posedge clk or posedge rst) begin
-    //     if (rst) begin
-    //     end else begin
-    //     end
-    // end
-
-
-    
 endmodule
